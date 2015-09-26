@@ -1,5 +1,5 @@
 {
-  "name": "IRC client for Circuit",
+  "name": "IRC chat extension for Circuit",
   "version": "0.0.1",
   "authors": [
     "Johannes Ruetschi"

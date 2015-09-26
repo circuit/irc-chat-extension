@@ -1,0 +1,14 @@
+{
+    "encryptedBotEmail"    : "xxxx",
+    "encryptedBotPassword" : "xxxx",
+    "domain"               : "circuitsandbox.net",
+    "apiKey"               : "xxxx",
+    "sdkLogLevel"          : "warn",
+    "appLogLevel"          : "debug",
+    "sslKey"               : "ssl/server.key",
+    "sslCrt"               : "ssl/server.crt",
+    "configSvcPort"        : "7443",
+    "redisUrl"             : "redis://redis-cluster.xxxx.com:6379",    
+    "awsRegion"            : "us-east-1",
+    "awsKeyARN"            : "arn:aws:kms:us-east-1:xxxx"
+}

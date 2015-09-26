@@ -1,0 +1,16 @@
+
+.vscode
+.DS_Store
+
+conf/config.json
+extension/manifest.json
+node_modules
+web/bower_components
+
+
+
+
+
+
+
+

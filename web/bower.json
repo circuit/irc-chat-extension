@@ -1,0 +1,25 @@
+{
+  "name": "IRC client for Circuit",
+  "version": "0.0.1",
+  "authors": [
+    "Johannes Ruetschi"
+  ],
+  "description": "Join your favorite IRC channel from Circuit",
+  "license": "MIT",
+  "homepage": "https://www.circuit.com/web/developers/",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "iron-ajax": "PolymerElements/iron-ajax#~1.0.4",
+    "iron-icons": "polymerelements/iron-icons#~1.0.3",
+    "iron-input": "polymerelements/iron-input#~1.0.6",
+    "paper-icon-button": "polymerelements/paper-icon-button#~1.0.3",
+    "paper-input": "polymerelements/paper-input#~1.0.14",
+    "polymer": "Polymer/polymer#^1.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+Welcome to the Internet Relay Chat (IRC) bot.
+
+At anytime you can ask the bot for help by posting a help command
+/help
+
+You can logon to the IRC network you configured in the extension settings by posting a logon command
+/logon
+
+You can join an IRC channel by posting a join command
+/join #channel
+
+for example /join #node.js
+
+To leave a channelyou can post a leave command in the channel thread
+/leave 
+
+You can logoff from the IRC network with a logoff command
+/logoff
+

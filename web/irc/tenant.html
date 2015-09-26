@@ -1,0 +1,133 @@
+<!--
+    Copyright (c) 2015 Unify Inc.
+    Copyright (c) 2014 The Polymer Authors. All rights reserved.
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the Software
+    is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+
+  <title>IRC for Circuit</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../bower_components/paper-input/paper-input.html">
+  <link rel="import" href="../bower_components/paper-input/paper-input-container.html">
+  <link rel="import" href="../bower_components/paper-input/paper-input-error.html">
+  <link rel="import" href="../bower_components/paper-input/paper-input-char-counter.html">
+  <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+  <link rel="stylesheet" href="../bower_components/paper-styles/color.html">
+  <link rel="import" href="../bower_components/paper-styles/demo-pages.html">
+
+  <style is="custom-style">
+    body {
+      padding: 15px;
+    }
+    paper-input.short {
+      width: 100px;
+    }
+    paper-icon-button {
+      color: var(--paper-red-300);
+      --paper-icon-button-ink-color: var(--paper-red-a100);
+      --iron-icon-width: 15px;
+      --iron-icon-height: 15px;
+      padding: 0px 4px;
+    }
+  </style>
+</head>
+
+<body unresolved>
+  <template is="dom-bind" id="app">
+    <div class="vertical center-justified layout">
+      <b>IRC for Circuit</b> Bot Settings<br><br>
+      <div class="vertical-section">
+
+        <paper-input id="email"
+          label="Email" type="email"
+          value="{{email}}"
+          onchange="{{onInputChange}}"
+          required auto-validate pattern="[\w\.\-]+\@[\w\.\-]+\.[\w]+" 
+          error-message="You need an email address for your bot">
+        </paper-input>
+
+        <paper-input id="password" 
+          label="Password" type="password"
+          value="{{password}}"
+          onchange="{{onInputChange}}"
+          required auto-validate pattern="[\S]*" 
+          error-message="Your bot needs a password">
+        </paper-input>
+
+        <br>
+        <button onclick="{{apply}}">Apply</button>
+        <paper-item id="statusItem">{{status}}</paper-item>
+
+      </div>
+    </div>  
+
+    <!--
+    //*********************************************************************
+    //* JS
+    //********************************************************************* -->
+    <script>
+      // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+      var DONE = 4;
+      var app = document.getElementById('app');
+
+      //*********************************************************************
+      //* onInputChange
+      //*********************************************************************
+      app.onInputChange = function onInputChange (e) {
+        console.log(e);
+        console.log(app.email);
+        console.log(app.password);
+      }
+
+      //*********************************************************************
+      //* apply settings
+      //*********************************************************************
+      app.apply = function apply () {
+
+        console.log(app.email);
+        console.log(app.password);
+
+        xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function(){
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseText);
+            app.status = xmlhttp.responseText;
+          }
+        }
+
+        xmlhttp.open('POST', 'tenantSettings?' + 
+          'email='   + app.email   + '&' +
+          'password='  + app.password,
+          true);
+        xmlhttp.send();
+        
+        app.status = 'waiting for server response';
+
+      }
+    </script>
+  </template>
+</body>
+</html>

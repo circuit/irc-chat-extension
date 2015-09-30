@@ -11,9 +11,11 @@ You can join an IRC channel by posting a join command
 
 for example /join #node.js
 
-To leave a channelyou can post a leave command in the channel thread
+To leave a channel you can post a leave command in the channel thread
 /leave 
 
 You can logoff from the IRC network with a logoff command
 /logoff
 
+You can list popular channels with the list command
+/list

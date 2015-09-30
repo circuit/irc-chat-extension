@@ -44,43 +44,43 @@ var config = require('./lib/configSvc');
 var Circuit = require('circuit');
 Circuit.setLogger(sdkLogger);
 
-//*********************************************************************
-// IrcBot
-// 
-// this is the main application that manages interactions between a
-// circuit user and the irc bot.
-//
-// The circuit user and the irc bot communicate through a direct conversation
-// that the irc bot initiates when the circuit user enables the bot through
-// the circuit settings interface
-//
-// Once enbaled the user can can send commands to the bot and IrcBot
-// will execute these commands
-//  
-// an irc session is created when a user logs on, and an irc cahnnel is created
-// when a user joins a channel
-//
-// irc sessions and irc channels for a user are store in transient cache storage
-// managed by ./lib/cacheSvc
-//
-// persitent storage for user and bot settings are stored in persistent storage
-// by ./lib/storageSvc
-//
-// implementations of cacheSvc & storageSvc to use different storage engines
-// 
-// The default implementation uses EC2 dynamoDB for persistent storage and
-// redis through EC2 elasticCahe for transient caching
-//
-// A circuit user or circuit tenant administrator can configure the bot
-// through the web interface provided by ./lib/configSvc
-//
-// The nomenclature used in IrcBot is
-// command -> the command sent by the user /help /logon /join /leave /logoff /list
-// session -> the irc session created when a user logs on
-// channel -> the irc channel a user joins
-// bot     -> the circuit SDK client for the IrcBot 
-// 
-//*********************************************************************
+/*********************************************************************
+IrcBot
+
+this is the main application that manages interactions between a
+circuit user and the irc bot.
+
+the circuit user and the irc bot communicate through a direct conversation
+that the irc bot initiates when the circuit user enables the irc chat client 
+through the circuit settings interface
+
+once enabled the user can can send commands to the bot and irc bot
+will execute these commands
+ 
+an irc session is created when a user logs on
+an irc channel is created when a user joins a channel
+
+irc sessions and irc channels for a user are stored in transient cache storage
+managed by ./lib/cacheSvc
+
+persistent storage for user and bot settings are stored in persistent storage
+by ./lib/storageSvc
+
+implementations of cacheSvc & storageSvc to use different storage engines
+
+the default implementation uses EC2 dynamoDB for persistent storage and
+redis through EC2 elasticCahe for transient caching
+
+a circuit user or circuit tenant administrator can configure the bot
+through the web interface provided by ./lib/configSvc
+
+the nomenclature used in irc bot is
+command -> the command sent by the user /help /logon /join /leave /logoff /list
+session -> the irc session created when a user logs on
+channel -> the irc channel a user joins
+bot     -> the circuit SDK client for the IrcBot 
+
+*********************************************************************/
 
 //*********************************************************************
 //* IrcBot
@@ -427,10 +427,7 @@ var IrcBot = function(){
             logger.debug('[APP]: cache.clearSession', session.nick, item.creatorId);
             cache.clearSession(session, item.creatorId);
         });
-
-
     };
-
 
     //*********************************************************************
     //* send - send a message on an irc channel
@@ -458,7 +455,6 @@ var IrcBot = function(){
             logger.debug('[APP]: found channelName in cache:', channelName, ', invoke say');
             session.say(channelName, item.text.content);
         }
-
     };
 
     //*********************************************************************
@@ -467,7 +463,6 @@ var IrcBot = function(){
     this.list = function list(item){
         logger.info('[APP]: list', item.itemId);
         self.respondToTextItem(item, CHANNEL_LIST_TEXT);
-
     };  
 
     //*********************************************************************
@@ -479,7 +474,7 @@ var IrcBot = function(){
     };   
 
     //*********************************************************************
-    //* postIrcMessageToCircuit - post received irc message to circuit
+    //* postIrcMessageToCircuit - post received send irc message to circuit
     //*********************************************************************
     this.postIrcMessageToCircuit = function postIrcMessageToCircuit(session, channel, from, message){
         logger.info('[APP]: postIrcMessageToCircuit', channel, from, message);
@@ -501,7 +496,6 @@ var IrcBot = function(){
         var session = new irc.Client(server, nick, options); 
 
         // add listeners http://node-irc.readthedocs.org/en/latest/API.html#events
-
         session.addListener('message', function (from, to, message) {
             logger.info('[APP]: message', from, ' => ', to, ': ', message);
             self.postIrcMessageToCircuit(this, to.toLowerCase(), from , message); // to is the channel

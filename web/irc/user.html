@@ -38,6 +38,9 @@
   <link rel="stylesheet" href="../bower_components/paper-styles/color.html">
   <link rel="import" href="../bower_components/paper-styles/demo-pages.html">
 
+  <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+
   <style is="custom-style">
     body {
       padding: 15px;
@@ -92,40 +95,75 @@
       </div>
     </div>  
 
+    <iron-ajax id="ajax" 
+      url="https://irc.circuitsandbox.net/irc/userSettings"
+      handle-as="json"
+      on-response="{{onAjaxResponse}}"
+      debounce-duration="300">
+    </iron-ajax>
+
     <!--
     //*********************************************************************
     //* JS
     //********************************************************************* -->
     <script>
       // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
-      // 0 UNSENT  open() has not been called yet.
-      // 1 OPENED  send() has been called.
-      // 2 HEADERS_RECEIVED  send() has been called, and headers and status are available.
-      // 3 LOADING Downloading; responseText holds partial data.
-      // 4 DONE  The operation is complete.
-      // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
       var DONE = 4;
       var app = document.getElementById('app');
 
       //*********************************************************************
+      //* dom-change
+      //*********************************************************************
+      app.addEventListener('dom-change', function() {
+        console.log('DOM is ready');
+        resizeWindow(); 
+
+        var xmlhttp = new XMLHttpRequest();
+
+        xmlhttp.onreadystatechange = function(){
+          if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseText);
+            var response = JSON.parse(xmlhttp.responseText);
+            if (response.data && response.data.length > 0){
+              var settings = response.data[0];
+              app.network = (settings.network) ? settings.network : app.network;
+              app.nick = (settings.nick) ? settings.nick : app.nick;
+              app.password = (settings.password) ? settings.password : app.password;
+            }
+          }
+
+        };
+
+        xmlhttp.open('GET', 'userSettings',true);
+        xmlhttp.send();
+
+      });
+
+
+      //*********************************************************************
       //* onInputChange
       //*********************************************************************
-      app.onInputChange = function onInputChange (e) {
+      app.onInputChange = function (e) {
         console.log(e);
-        console.log(app.email);
-        console.log(app.password);
+      }
+
+      //*********************************************************************
+      //* onAjaxResponse
+      //*********************************************************************
+      app.onAjaxResponse = function (response) {
+        console.log('handleResponse', response);
       }
 
       //*********************************************************************
       //* apply settings
       //*********************************************************************
-      app.apply = function apply () {
+      app.apply = function () {
 
         console.log(app.network);
         console.log(app.nick);
         console.log(app.password);
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function(){
         if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
             console.log(xmlhttp.responseText);
@@ -144,6 +182,24 @@
         app.status = 'waiting for server response';
 
       }
+
+      function resizeWindow(){
+        if(navigator.userAgent.toLowerCase().indexOf('chrome') > -1)
+          var t = setTimeout("resize()", 20);
+        else
+          resize();
+      }
+
+      function resize() {
+          var innerWidth = 
+            window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+          var innerHeight = 
+            window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+          var targetWidth = 450;
+          var targetHeight = 380;
+          window.resizeBy(targetWidth-innerWidth, targetHeight-innerHeight);
+      }        
+
     </script>
   </template>
 </body>

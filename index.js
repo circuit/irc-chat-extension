@@ -294,7 +294,7 @@ var IrcBot = function(){
     };   
 
     //*********************************************************************
-    //* postIrcMessageToCircuit - post received send irc message to circuit
+    //* postIrcMessageToCircuit - post received irc message to circuit
     //*********************************************************************
     this.postIrcMessageToCircuit = function postIrcMessageToCircuit(session, channel, from, message){
         logger.info('[APP]: postIrcMessageToCircuit', channel, from, message);
@@ -372,7 +372,7 @@ var IrcBot = function(){
     //*********************************************************************
     //* sendWelcomeMessage 
     //*********************************************************************
-    // message send by bot to user when user enables bot
+    // message send by bot to user when user enables circuit extension
     this.sendWelcomeMessage = function sendWelcomeMessage(userId){
         logger.info('[APP]: sendWelcomeMessage',userId);
         bot.getDirectConversationWithUser(userId)
@@ -431,8 +431,6 @@ var IrcBot = function(){
             return crypto.decrypt(userSettings.encryptedPassword);
         })
         .then(function(password){
-            // only one instance of the IRC extension can be configured per user
-            // use the first row returned from storage
             logger.info('[APP]: creating irc session', userSettings.network, userSettings.nick);
             var session = self.createSession(
                 userSettings.network, 
@@ -574,7 +572,7 @@ var IrcBot = function(){
     };
 
     //*********************************************************************
-    //* list - list popular IRC channels
+    //* list - list popular irc channels
     //*********************************************************************
     this.list = function list(item){
         logger.info('[APP]: list', item.itemId);
@@ -582,7 +580,7 @@ var IrcBot = function(){
     };  
 
     //*********************************************************************
-    //* IrcBot - register command functions 
+    //* IrcBot - register commands with functions 
     //*********************************************************************    
     commands.set('help', this.help);
     commands.set('logon', this.logon);
@@ -591,9 +589,6 @@ var IrcBot = function(){
     commands.set('leave', this.leave);
     commands.set('send', this.send);
     commands.set('list', this.list);
-
-    //register for configuration changes
-    //config.registerListener(this.onConfigurationChange);
 
     //*********************************************************************
     //* onTenantSettingsChange

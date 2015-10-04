@@ -1,5 +1,5 @@
 {
-    "encryptedBotEmail"    : "xxxx",
+    "botEmail"             : "xxxx",
     "encryptedBotPassword" : "xxxx",
     "domain"               : "circuitsandbox.net",
     "apiKey"               : "xxxx",

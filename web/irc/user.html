@@ -38,9 +38,6 @@
   <link rel="stylesheet" href="../bower_components/paper-styles/color.html">
   <link rel="import" href="../bower_components/paper-styles/demo-pages.html">
 
-  <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
-
-
   <style is="custom-style">
     body {
       padding: 15px;
@@ -95,13 +92,6 @@
       </div>
     </div>  
 
-    <iron-ajax id="ajax" 
-      url="https://irc.circuitsandbox.net/irc/userSettings"
-      handle-as="json"
-      on-response="{{onAjaxResponse}}"
-      debounce-duration="300">
-    </iron-ajax>
-
     <!--
     //*********************************************************************
     //* JS
@@ -128,7 +118,6 @@
               var settings = response.data[0];
               app.network = (settings.network) ? settings.network : app.network;
               app.nick = (settings.nick) ? settings.nick : app.nick;
-              app.password = (settings.password) ? settings.password : app.password;
             }
           }
 

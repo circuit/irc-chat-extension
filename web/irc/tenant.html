@@ -94,18 +94,39 @@
       var app = document.getElementById('app');
 
       //*********************************************************************
+      //* dom-change
+      //*********************************************************************
+      app.addEventListener('dom-change', function() {
+        console.log('DOM is ready');
+
+        var xmlhttp = new XMLHttpRequest();
+
+        xmlhttp.onreadystatechange = function(){
+          if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseText);
+            var response = JSON.parse(xmlhttp.responseText);
+            if (response.data && response.data.length > 0){
+              var settings = response.data[0];
+              app.email = (settings.email) ? settings.email : app.email;
+            }
+          }
+        };
+
+        xmlhttp.open('GET', 'tenantSettings',true);
+        xmlhttp.send();
+      });
+
+      //*********************************************************************
       //* onInputChange
       //*********************************************************************
-      app.onInputChange = function onInputChange (e) {
+      app.onInputChange = function (e) {
         console.log(e);
-        console.log(app.email);
-        console.log(app.password);
       }
 
       //*********************************************************************
       //* apply settings
       //*********************************************************************
-      app.apply = function apply () {
+      app.apply = function () {
 
         console.log(app.email);
         console.log(app.password);
@@ -125,7 +146,6 @@
         xmlhttp.send();
         
         app.status = 'waiting for server response';
-
       }
     </script>
   </template>

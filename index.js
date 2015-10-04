@@ -39,6 +39,7 @@ var sdkLogger = require('./lib/loggerSvc').sdkLogger;
 var cache = require('./lib/cacheSvc');
 var storage = require('./lib/storageSvc');
 var config = require('./lib/configSvc');
+var crypto = require('./lib/cryptoSvc');
 
 // Circuit SDK    
 var Circuit = require('circuit');
@@ -113,7 +114,7 @@ var IrcBot = function(){
     this.start = function start(){
         logger.info('[APP]: start');
         logger.debug('[APP]: create a circuit client for the bot');
-        bot = new Circuit.Client({domain: config.domain});
+        bot = new Circuit.Client({domain: config.circuitDomain});
         self.addEventListeners(bot);
         return config.getCredentials()
         .then(self.logonBot);
@@ -149,9 +150,10 @@ var IrcBot = function(){
             self.logEvent(evt);
             if (evt.state === 'Disconnected'){
                 logger.info('[APP]: logon after receiving a disconnect');
-                self.logonBot(config.getCredentials())
-                .catch (function (e) {
-                    logger.error('[APP]: failed to logon after disconnect', e);
+                config.getCredentials()
+                .then(self.logonBot)
+                .catch (function (err) {
+                    logger.error('[APP]: failed to logon after disconnect', err);
                 });
             }    
         });
@@ -199,7 +201,7 @@ var IrcBot = function(){
     //* processItem - proceses text item received from circuit
     //*********************************************************************
     this.processItem = function (item) {
-        logger.info('[APP]: processItem', item);
+        logger.info('[APP]: processItem', item.itemId);
         if (item.type !== 'TEXT' || self.sentByMe(item)) {
             logger.debug('[APP]: skip it is not text or I sent it');
             return;
@@ -211,7 +213,6 @@ var IrcBot = function(){
         var text = htmlToText.fromString(item.text.content);
         var command = self.isCommand(text);
         if (command) {
-            logger.debug('[APP]: found command', command);
             command(item, text);
         }
 
@@ -257,7 +258,7 @@ var IrcBot = function(){
         };
         bot.addTextItem(item.convId, response)
         .then(function postedResponse(){
-            logger.debug('[APP]: postedResponse', response.content);
+            logger.debug('[APP]: postedResponse', response.state);
         })
         .catch(function respondError(e){
             logger.warn('[APP]: respondError',e);
@@ -284,6 +285,117 @@ var IrcBot = function(){
         });
     };
 
+
+    //*********************************************************************
+    //* sentByMe - check if the received circuit event was sent by me
+    //*********************************************************************
+    this.sentByMe = function sentByMe (item){
+        logger.info('[APP]: list', item.itemId);
+        return (botUserId === item.creatorId);
+    };   
+
+    //*********************************************************************
+    //* postIrcMessageToCircuit - post received send irc message to circuit
+    //*********************************************************************
+    this.postIrcMessageToCircuit = function postIrcMessageToCircuit(session, channel, from, message){
+        logger.info('[APP]: postIrcMessageToCircuit', channel, from, message);
+        var item = cache.getChannelItem(session, channel);
+        if (!item){
+            logger.warn('[APP]: channel item not found in cache for session', session.opt.nick, channel);
+            return;
+        }
+        self.respondToTextItem(item, from + ' : ' + message);
+    };
+
+    //*********************************************************************
+    //* createSession - creates an irc session for a user
+    //*********************************************************************
+    this.createSession = function createSession (server, nick, options) {
+        logger.info('[APP]: createSession', server, nick, options);
+
+        // create an irc session
+        var session = new irc.Client(server, nick, options); 
+
+        // add listeners http://node-irc.readthedocs.org/en/latest/API.html#events
+        session.addListener('message', function (from, to, message) {
+            logger.info('[APP]: message', from, ' => ', to, ': ', message);
+            self.postIrcMessageToCircuit(this, to.toLowerCase(), from , message); // to is the channel
+        });
+
+        session.addListener('message#channel', function (from, to, message) {
+            logger.info('[APP]: message#channel', from, ' => ', to, ': ', message);
+            self.postIrcMessageToCircuit(this, to.toLowerCase(), from , message); // to is the channel
+        });
+
+        session.addListener('join', function(channel, who) {
+            logger.info('[APP]: ' + who + ' => joined ');
+            if (who === this.opt.nick){
+                logger.debug('[APP]: it\'s me, lookup last joined channel in cache');
+                var lastJoinedChannel = cache.getLastJoinedChannel(this);
+                if (!lastJoinedChannel){
+                    logger.warn('[APP]: lastJoinedChannel not found in cache', this.opt.nick);
+                    return;
+                }
+                logger.debug('[APP]: found lastJoinedChannel in cache', lastJoinedChannel);
+                self.postIrcMessageToCircuit(this, lastJoinedChannel, who, 'joined');                
+            }
+        });
+
+        session.addListener('error', function(message) {
+            logger.error('[APP]: error', message);
+        });
+
+        session.addListener('registered', function(message) {
+            logger.info('[APP]: registered: ', message);
+            var item = cache.getSessionItem(this);
+            if (!item){
+                logger.warn('[APP]: could not find item for session in cache');
+                return;
+            }
+            var text = (message.args && message.args.length >= 1) ?
+                message.args[1] : IRC_REGISTERED_TEXT;
+            self.respondToTextItem(item, text);
+        });
+
+        session.addListener('motd', function(motd) {
+            logger.info('[APP]: received motd: ', motd);
+            var item = cache.getSessionItem(this);
+            if (!item){
+                logger.warn('[APP]: could not find item for session in cache');
+                return;
+            }
+            self.respondToTextItem(item, motd);
+        });
+
+        return session;
+    };  
+
+    //*********************************************************************
+    //* sendWelcomeMessage 
+    //*********************************************************************
+    // message send by bot to user when user enables bot
+    this.sendWelcomeMessage = function sendWelcomeMessage(userId){
+        logger.info('[APP]: sendWelcomeMessage',userId);
+        bot.getDirectConversationWithUser(userId)
+        .then( function checkIfConversationExists (conversation) {
+            logger.info('[APP]: checkIfConversationExists',conversation);
+            if (conversation){
+                logger.info('[APP] conversation exists', conversation.convId);
+                return Promise.resolve(conversation);
+            } else {
+                logger.info('[APP]: conversation does not exist, create new conversation');
+                return bot.createDirectConversation(userId);
+            }    
+        })
+        .then (function addTextItemToConversation (conversation){
+            logger.info('[APP] addTextItemToConversation ', conversation.convId, 'help text');
+            bot.addTextItem(conversation.convId, HELP_TEXT);
+        })
+        .catch(function (err) {
+            logger.error(err);
+        });
+    };
+
     //*********************************************************************
     //* help command - display help
     //*********************************************************************
@@ -305,22 +417,28 @@ var IrcBot = function(){
             return;
         }
 
+        var userSettings = null;
         logger.debug('[APP]: try to find user settings in db for ', item.creatorId, 'irc');
-        storage.getUserSettingsForExtensionType(item.creatorId, 'irc')
+        storage.getUserSettings(item.creatorId, 'irc')
         .then(function(settings){
-            logger.debug('[APP]: got response from DB', settings);
+            logger.debug('[APP]: got response from DB');
             if (settings.lentgh === 0){
                 logger.debug('[APP]:  settings not found in DB', settings);
                 self.respondToTextItem(item, PLEASE_CONFIGURE_EXTENSION_TEXT);
                 return;
             }
+            userSettings = settings[0];
+            logger.debug('[APP]: decrypt password');
+            return crypto.decrypt(userSettings.encryptedPassword);
+        })
+        .then(function(password){
             // only one instance of the IRC extension can be configured per user
             // use the first row returned from storage
-            logger.info('[APP]: creating irc session', settings[0].network, settings[0].nick);
+            logger.info('[APP]: creating irc session', userSettings.network, userSettings.nick);
             var session = self.createSession(
-                settings[0].network, 
-                settings[0].nick, 
-                {sasl: true, userName: 'user', password: settings[0].password}); 
+                userSettings.network, 
+                userSettings.nick, 
+                {sasl: true, userName: 'user', password: password}); 
 
             logger.debug('[APP]: add irc session to cache for userId', item.creatorId, session.opt.nick);
             cache.setSessionForUserId(item.creatorId, session);
@@ -329,14 +447,13 @@ var IrcBot = function(){
             cache.setSessionItem(session, item);
 
             self.respondToTextItem(item, NEW_SESSION_TEXT);
-            return;
+            return;            
         })
         .catch(function(e){
             logger.error('[APP]: could not get user settings', e, item.creatorId);
             self.respondToTextItem(item, USER_SETTINGS_ERROR_TEXT);
             return;
         });
-
     };
 
     //*********************************************************************
@@ -466,133 +583,7 @@ var IrcBot = function(){
     };  
 
     //*********************************************************************
-    //* sentByMe - check if the received circuit event was sent by me
-    //*********************************************************************
-    this.sentByMe = function sentByMe (item){
-        logger.info('[APP]: list', item.itemId);
-        return (botUserId === item.creatorId);
-    };   
-
-    //*********************************************************************
-    //* postIrcMessageToCircuit - post received send irc message to circuit
-    //*********************************************************************
-    this.postIrcMessageToCircuit = function postIrcMessageToCircuit(session, channel, from, message){
-        logger.info('[APP]: postIrcMessageToCircuit', channel, from, message);
-        var item = cache.getChannelItem(session, channel);
-        if (!item){
-            logger.warn('[APP]: channel item not found in cache for session', session.opt.nick, channel);
-            return;
-        }
-        self.respondToTextItem(item, from + ' : ' + message);
-    };
-
-    //*********************************************************************
-    //* createSession - creates an irc session for a user
-    //*********************************************************************
-    this.createSession = function createSession (server, nick, options) {
-        logger.info('[APP]: createSession', server, nick, options);
-
-        // create an irc session
-        var session = new irc.Client(server, nick, options); 
-
-        // add listeners http://node-irc.readthedocs.org/en/latest/API.html#events
-        session.addListener('message', function (from, to, message) {
-            logger.info('[APP]: message', from, ' => ', to, ': ', message);
-            self.postIrcMessageToCircuit(this, to.toLowerCase(), from , message); // to is the channel
-        });
-
-        session.addListener('message#channel', function (from, to, message) {
-            logger.info('[APP]: message#channel', from, ' => ', to, ': ', message);
-            self.postIrcMessageToCircuit(this, to.toLowerCase(), from , message); // to is the channel
-        });
-
-        session.addListener('join', function(channel, who) {
-            logger.info('[APP]: ' + who + ' => joined ');
-            if (who === this.opt.nick){
-                logger.debug('[APP]: it\'s me, lookup last joined channel in cache');
-                var lastJoinedChannel = cache.getLastJoinedChannel(this);
-                if (!lastJoinedChannel){
-                    logger.warn('[APP]: lastJoinedChannel not found in cache', this.opt.nick);
-                    return;
-                }
-                logger.debug('[APP]: found lastJoinedChannel in cache', lastJoinedChannel);
-                self.postIrcMessageToCircuit(this, lastJoinedChannel, who, 'joined');                
-            }
-        });
-
-        session.addListener('error', function(message) {
-            logger.error('[APP]: error', message);
-        });
-
-        session.addListener('registered', function(message) {
-            logger.info('[APP]: registered: ', message);
-            var item = cache.getSessionItem(this);
-            if (!item){
-                logger.warn('[APP]: could not find item for session in cache');
-                return;
-            }
-            var text = (message.args && message.args.length >= 1) ?
-                message.args[1] : IRC_REGISTERED_TEXT;
-            self.respondToTextItem(item, text);
-        });
-
-        session.addListener('motd', function(motd) {
-            logger.info('[APP]: received motd: ', motd);
-            var item = cache.getSessionItem(this);
-            if (!item){
-                logger.warn('[APP]: could not find item for session in cache');
-                return;
-            }
-            self.respondToTextItem(item, motd);
-        });
-
-        return session;
-    };  
-
-    //*********************************************************************
-    //* onConfigurationChange - 
-    //*********************************************************************
-    this.onConfigurationChange = function onConfigurationChange (type, data) {
-        logger.info('[APP]: onConfigurationChange', type, data);
-        if (type === 'botSettings'){
-            // if event is for bot - reload bot
-            bot.logout();            
-        }
-        if (type === 'enabledByUser'){
-            // user enable the irc extension
-            // send the welcome mesage to the user
-            self.sendWelcomeMessage(data.userId);
-        }
-    };
-
-    //*********************************************************************
-    //* sendWelcomeMessage 
-    //*********************************************************************
-    // message send by bot to user when user enables bot
-    this.sendWelcomeMessage = function sendWelcomeMessage(userId){
-        logger.info('[APP]: sendWelcomeMessage',userId);
-        bot.getDirectConversationWithUser(userId)
-        .then( function checkIfConversationExists (conversation) {
-            logger.info('[APP]: checkIfConversationExists',conversation);
-            if (conversation){
-                logger.info('[APP] conversation exists', conversation.convId);
-                return Promise.resolve(conversation);
-            } else {
-                logger.info('[APP]: conversation does not exist, create new conversation');
-                return bot.createDirectConversation(userId);
-            }    
-        })
-        .then (function addTextItemToConversation (conversation){
-            logger.info('[APP] addTextItemToConversation ', conversation.convId, 'help text');
-            bot.addTextItem(conversation.convId, HELP_TEXT);
-        })
-        .catch(function (err) {
-            logger.error(err);
-        });
-    };
-
-    //*********************************************************************
-    //* IrcBot -- constructor 
+    //* IrcBot - register command functions 
     //*********************************************************************    
     commands.set('help', this.help);
     commands.set('logon', this.logon);
@@ -603,7 +594,26 @@ var IrcBot = function(){
     commands.set('list', this.list);
 
     //register for configuration changes
-    config.registerListener(this.onConfigurationChange);
+    //config.registerListener(this.onConfigurationChange);
+
+    //*********************************************************************
+    //* onTenantSettingsChange
+    //*********************************************************************    
+    config.on('tenantSettings', function onTenantSettingsChange (tenantSettings){
+        // for an account change logout & 
+        // sign in again after receiving a disconnect event
+        logger.info('[APP]: onTenantSettingsChange', tenantSettings);
+        bot.logout();  
+    });
+
+    //*********************************************************************
+    //* onEnabledByUser 
+    //*********************************************************************    
+    config.on('enabledByUser', function onEnabledByUser (userSettings){
+        logger.info('[APP]: onEnabledByUser', userSettings);
+        self.sendWelcomeMessage(userSettings.userId);
+    });
+
 };
 
 //*********************************************************************

@@ -20,10 +20,8 @@
     OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// 'use strict';
-// /*global console */
-
-var DONE = 4; // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+'use strict';
+/*global console, resizeWindow, DONE */
 var app = document.getElementById('app');
 
 //*********************************************************************
@@ -31,7 +29,7 @@ var app = document.getElementById('app');
 //*********************************************************************
 app.addEventListener('dom-change', function() {
     console.log('DOM is ready');
-    resizeWindow(); 
+    resizeWindow(450, 400); 
 });
 
 //*********************************************************************
@@ -65,13 +63,6 @@ app.onInputChange = function (e) {
 };
 
 //*********************************************************************
-//* onAjaxResponse
-//*********************************************************************
-app.onAjaxResponse = function (response) {
-    console.log('handleResponse', response);
-};
-
-//*********************************************************************
 //* apply settings
 //*********************************************************************
 app.apply = function () {
@@ -95,32 +86,3 @@ app.apply = function () {
     xmlhttp.send();
     app.status = 'waiting for server response';
 };
-
-//*********************************************************************
-//* resizeWindow
-//*********************************************************************
-function resizeWindow(){
-    if (navigator.userAgent.toLowerCase().indexOf('chrome') > -1)
-        setTimeout(resize, 10);
-    else
-        resize();
-}
-
-//*********************************************************************
-//* resize
-//*********************************************************************
-function resize() {
-    var innerWidth = 
-      window.innerWidth || 
-      document.documentElement.clientWidth || 
-      document.body.clientWidth;
-
-    var innerHeight = 
-      window.innerHeight || 
-      document.documentElement.clientHeight || 
-      document.body.clientHeight;
-
-    var targetWidth = 450;
-    var targetHeight = 380;
-    window.resizeBy(targetWidth-innerWidth, targetHeight-innerHeight);
-}

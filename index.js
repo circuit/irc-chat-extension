@@ -290,7 +290,6 @@ var IrcBot = function(){
     //* sentByMe - check if the received circuit event was sent by me
     //*********************************************************************
     this.sentByMe = function sentByMe (item){
-        logger.info('[APP]: list', item.itemId);
         return (botUserId === item.creatorId);
     };   
 

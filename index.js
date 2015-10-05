@@ -69,8 +69,8 @@ by ./lib/storageSvc
 
 implementations of cacheSvc & storageSvc to use different storage engines
 
-the default implementation uses EC2 dynamoDB for persistent storage and
-redis through EC2 elasticCahe for transient caching
+the default implementation uses EC2 dynamoDB for persistent storage and a
+local cache for transient data
 
 a circuit user or circuit tenant administrator can configure the bot
 through the web interface provided by ./lib/configSvc
